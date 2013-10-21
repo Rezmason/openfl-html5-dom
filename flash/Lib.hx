@@ -23,6 +23,7 @@ import js.html.CanvasRenderingContext2D;
 import js.html.DivElement;
 import js.html.Element;
 import js.html.MetaElement;
+import js.html.TextAreaElement;
 import js.Browser;
 
 
@@ -39,7 +40,8 @@ class Lib {
 	private static var HTML_DIV_EVENT_TYPES = [ 'resize', /*'mouseup',*/ 'mouseover', 'mouseout', /*'mousemove', 'mousedown',*/ 'mousewheel', 'dblclick', 'click' ];
 	private static var HTML_TOUCH_EVENT_TYPES = [ 'touchstart', 'touchmove', 'touchend' ];
 	private static var HTML_TOUCH_ALT_EVENT_TYPES = [ 'mousedown', 'mousemove', 'mouseup' ];
-	private static var HTML_WINDOW_EVENT_TYPES = [ 'keyup', 'keypress', 'keydown', 'resize', 'blur', 'focus' ];
+	private static var HTML_WINDOW_EVENT_TYPES = [ 'resize', 'blur', 'focus' ];
+	private static var HTML_KEY_EVENT_TYPES = [ 'keydown', 'keypress', 'keyup', 'input' ];
 	private static inline var NME_IDENTIFIER = 'haxe:openfl';
 	private static inline var VENDOR_HTML_TAG = "data-";
 	
@@ -282,6 +284,30 @@ class Lib {
 		Lib.current.graphics.drawRect (0, 0, width, height);
 		__setSurfaceId (Lib.current.graphics.__surface, "Root MovieClip");
 		__getStage ().__updateNextWake ();
+
+		// Adding a hidden text area to catch charCodes for keyboard events
+		// This method is based partly on @marijnh's CodeMirror text handling.
+
+		var input:TextAreaElement = Browser.document.createTextAreaElement();
+		input.setAttribute("style", "position: absolute; padding: 0; width: 1px; height: 1em; outline: none; font-size: 4px;");
+		input.setAttribute("autocorrect", "off");
+		input.setAttribute("autocapitalize", "off");
+		input.setAttribute("spellcheck", "false");
+
+		var inputDiv:DivElement = Browser.document.createDivElement();
+		inputDiv.setAttribute("style", "overflow: hidden; position: relative; width: 3px; height: 0px;");
+		inputDiv.appendChild(input);
+		mMe.__scr.appendChild(inputDiv);
+		
+		var dispatch = __getStage().__queueStageEvent;
+		for (type in HTML_KEY_EVENT_TYPES) input.addEventListener(type, dispatch, false);
+
+		function onFocus(event) input.focus();
+		function onBlur(event) input.blur();
+
+		__getStage().addEventListener("activate", onFocus);
+		__getStage().addEventListener("mouseDown", onFocus);
+		__getStage().addEventListener("deactivate", onBlur);
 
 		return mMe;
 		

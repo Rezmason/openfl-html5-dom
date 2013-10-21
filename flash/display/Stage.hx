@@ -18,6 +18,7 @@ import flash.Lib;
 import flash.Vector;
 import js.html.CanvasElement;
 import js.html.DeviceMotionEvent;
+import js.html.TextAreaElement;
 import js.Browser;
 
 #if stage3d
@@ -84,6 +85,10 @@ class Stage extends DisplayObjectContainer {
 	private var __windowHeight:Int;
 	private var _mouseX:Float;
 	private var _mouseY:Float;
+
+	private var _lastKeyDownEvent:js.html.KeyboardEvent;
+	private var _keyCharCodes:Map<Int, Int>;
+
 	
 	
 	public function new (width:Int, height:Int) {
@@ -111,6 +116,8 @@ class Stage extends DisplayObjectContainer {
 		__touchInfo = [];
 		__uIEventsQueue = untyped __new__("Array", UI_EVENTS_QUEUE_MAX);
 		__uIEventsQueueIndex = 0;
+
+		_keyCharCodes = new Map();
 
 		#if stage3d
 		stage3Ds = new Vector ();
@@ -325,21 +332,29 @@ class Stage extends DisplayObjectContainer {
 				
 				__onMouse (cast evt, MouseEvent.DOUBLE_CLICK);
 			
+			case "input":
+
+				var input:TextAreaElement = cast evt.target;
+				var charCode:Int = input.value.charCodeAt(0);
+				input.value = "";
+
+				__processLateKeyDownEvent(charCode);
+
 			case "keydown":
 				
-				var evt:js.html.KeyboardEvent = cast evt;
-				var keyCode = (evt.keyCode != null ? evt.keyCode : evt.which);
-				keyCode = Keyboard.__convertMozillaCode (keyCode);
-				
-				__onKey (keyCode, true, evt.charCode, evt.ctrlKey, evt.altKey, evt.shiftKey, evt.keyLocation);
+				__processLateKeyDownEvent(0);
+				_lastKeyDownEvent = cast evt;
 			
 			case "keyup":
 				
 				var evt:js.html.KeyboardEvent = cast evt;
 				var keyCode = (evt.keyCode != null ? evt.keyCode : evt.which);
-				keyCode = Keyboard.__convertMozillaCode (keyCode);
-				
-				__onKey (keyCode, false, evt.charCode, evt.ctrlKey, evt.altKey, evt.shiftKey, evt.keyLocation);
+				keyCode = Keyboard.__convertMozillaCode(keyCode);
+				var charCode = evt.charCode;
+				if (charCode == null || charCode == 0) charCode = _keyCharCodes[keyCode];
+				_keyCharCodes[keyCode] = 0;
+
+				__onKey(keyCode, false, charCode, evt.ctrlKey, evt.altKey, evt.shiftKey, evt.keyLocation);
 			
 			case "touchstart":
 				
@@ -379,6 +394,23 @@ class Stage extends DisplayObjectContainer {
 		
 	}
 	
+	inline function __processLateKeyDownEvent(newCharCode:Int):Void {
+		if (_lastKeyDownEvent != null) {
+			var keyCode = (_lastKeyDownEvent.keyCode != null ? _lastKeyDownEvent.keyCode : _lastKeyDownEvent.which);
+			keyCode = Keyboard.__convertMozillaCode(keyCode);
+
+			var charCode:Int = _keyCharCodes[keyCode];
+
+			if (charCode == 0 || charCode == null) {
+				charCode = newCharCode;
+				_keyCharCodes[keyCode] = charCode;
+			}
+
+			__onKey(keyCode, true, charCode, _lastKeyDownEvent.ctrlKey, _lastKeyDownEvent.altKey, _lastKeyDownEvent.shiftKey, _lastKeyDownEvent.keyLocation);
+			_lastKeyDownEvent = null;
+		}
+	}
+
 	
 	public function __queueStageEvent (evt:js.html.Event):Void {
 		
@@ -425,6 +457,8 @@ class Stage extends DisplayObjectContainer {
 			
 		}
 		
+		__processLateKeyDownEvent(0);
+
 		__uIEventsQueueIndex = 0;
 		
 		var event = new Event (Event.ENTER_FRAME);
