@@ -278,8 +278,15 @@ class Lib {
 		
 		// This ensures that a canvas hitTest hits the root movieclip
 		
-		Lib.current.graphics.beginFill (__getStage ().backgroundColor);
-		Lib.current.graphics.drawRect (0, 0, width, height);
+		function resizeBackground(?event:Event) {
+			Lib.current.graphics.clear();
+			Lib.current.graphics.beginFill(__getStage().backgroundColor);
+			Lib.current.graphics.drawRect(0, 0, Lib.current.stage.stageWidth, Lib.current.stage.stageHeight);
+		}
+
+		__getStage().addEventListener(Event.RESIZE, resizeBackground);
+		resizeBackground();
+		
 		__setSurfaceId (Lib.current.graphics.__surface, "Root MovieClip");
 		__getStage ().__updateNextWake ();
 
