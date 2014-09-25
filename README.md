@@ -1,3 +1,5 @@
+_openfl-html5 was merged into the [main openfl repository](https://github.com/openfl/openfl) in version 2.0 so this repository is deprecated_
+
 openfl-html5
 ============
 [![Build Status](https://travis-ci.org/openfl/openfl-html5-dom.png)](https://travis-ci.org/openfl/openfl-html5-dom)
